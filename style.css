@@ -3,3 +3,7 @@
     height: 30px;
     border: 1px black solid;
 }
+
+.pressed {
+    background-color: greenyellow;
+}
