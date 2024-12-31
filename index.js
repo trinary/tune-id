@@ -48,6 +48,7 @@
         notes: paramNotes,
         osc: 'sine',
         songStart: Date.now(),
+        recording: false,
     }
 
     let app = document.getElementById('app');
@@ -72,8 +73,9 @@
     function notePressed(event) {
         if (audioCtx == null) { createContext(); }
         if (event.buttons & 1 || event.touches) {
-            if (song.notes.length == 0) {
+            if (song.notes.length == 0 && !song.recording) {
                 song.songStart = Date.now();
+                song.recording = true;
             }
             let id = event.target.id;
             notes[id].noteStart = Date.now();
@@ -141,12 +143,12 @@
 
         let id = keymap[event.key];
         if (id == null) { return;}
-        if (song.notes.length == 0) {
+        if (song.notes.length == 0 && !song.recording) {
             song.songStart = Date.now();
+            song.recording = true;
         }
 
         notes[id].noteStart = Date.now();
-
 
         let noteElement = document.getElementById(id);
         noteElement.classList.add("pressed");
@@ -193,6 +195,7 @@
     function clearHandler(event) {
         console.log("clear song");
         song.notes = [];
+        song.recording = false;
         updateState();
     }
 
