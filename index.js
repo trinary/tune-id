@@ -180,12 +180,15 @@
         for (const note of song.notes) {
             setTimeout(() => {
                 let osc = audioCtx.createOscillator();
+                let noteElement = document.getElementById(note.name);
+                noteElement.classList.add('pressed');
                 osc.connect(gainNode);
                 osc.type = 'sine';
                 osc.frequency.value = notes[note.name].freq;
                 osc.start();
 
                 setTimeout(() => {
+                    noteElement.classList.remove('pressed');
                     osc.stop();
                 }, note.length);
             }, note.start);
