@@ -42,6 +42,7 @@
     let params = new URLSearchParams(window.location.search);
 
     let paramNotes = [];
+    let playTimeouts = [];
     if (params.has('n')) { paramNotes = decodeSong(params.get('n')); }
 
     let song = {
@@ -60,6 +61,12 @@
 
     let clearButton = document.getElementById("clear");
     clearButton.addEventListener("click", clearHandler, false);
+
+    let volumeInput = document.getElementById("volume"); 
+    volumeInput.addEventListener("change", volumeHandler, false);
+
+    let waveInput = document.getElementById("wavetype");
+    waveInput.addEventListener("change", wavetypeHandler, false);
 
     for (const [key, value] of Object.entries(notes)) {
         console.log("creating", value);
@@ -103,7 +110,7 @@
         console.log("play", freq);
         let osc = audioCtx.createOscillator();
         osc.connect(gainNode);
-        osc.type = 'sine';
+        osc.type = waveInput.value;
         osc.frequency.value = freq;
         osc.start();
         return osc;
@@ -167,8 +174,7 @@
         if (osc !== null) {
             osc.stop();
             notes[id].osc = null;
-            song.notes.push({ name: id, start: notes[id].noteStart - song.songStart, length: Date.now() - notes[id].noteStart });
-            
+            song.notes.push({ name: id, start: notes[id].noteStart - song.songStart, length: Date.now() - notes[id].noteStart });   
         }
         updateState();
 
@@ -178,20 +184,22 @@
         console.log("play song", song);
         if (audioCtx == null) { createContext(); }
         for (const note of song.notes) {
-            setTimeout(() => {
+            let timeout = setTimeout(() => {
                 let osc = audioCtx.createOscillator();
                 let noteElement = document.getElementById(note.name);
                 noteElement.classList.add('pressed');
                 osc.connect(gainNode);
-                osc.type = 'sine';
+                osc.type = waveInput.value;
                 osc.frequency.value = notes[note.name].freq;
                 osc.start();
 
-                setTimeout(() => {
+                let stopTimeout = setTimeout(() => {
                     noteElement.classList.remove('pressed');
                     osc.stop();
                 }, note.length);
+                playTimeouts.push(stopTimeout);
             }, note.start);
+            playTimeouts.push(timeout);
         }
     }
 
@@ -199,7 +207,21 @@
         console.log("clear song");
         song.notes = [];
         song.recording = false;
+        for (const timeout of playTimeouts) {
+            clearTimeout(timeout);
+        }
+        // TODO clear currently playing notes in here too
         updateState();
+    }
+
+    function volumeHandler(event) {
+        console.log("volume", event);
+        gainNode.gain.value = event.target.value;
+    }
+
+    function wavetypeHandler(event) {
+        console.log("wavetype", event);
+
     }
 
     function createKey(note) {
@@ -227,6 +249,6 @@
         audioCtx = new AudioContext();
         gainNode = audioCtx.createGain();
         gainNode.connect(audioCtx.destination);
-        gainNode.gain.value = 0.4;
+        gainNode.gain.value = volumeInput.value;
     }
 })();

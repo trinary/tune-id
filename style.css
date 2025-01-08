@@ -1,3 +1,43 @@
+/* CSS HEX */
+:root {
+    --rose: #f72585ff;
+    --fandango: #b5179eff;
+    --grape: #7209b7ff;
+    --chrysler-blue: #560badff;
+    --dark-blue: #480ca8ff;
+    --zaffre: #3a0ca3ff;
+    --palatinate-blue: #3f37c9ff;
+    --neon-blue: #4361eeff;
+    --chefchaouen-blue: #4895efff;
+    --vivid-sky-blue: #4cc9f0ff;
+
+    --dark-bg: #363636;
+    --light-bg: #c6c6c6;
+}
+
+button, label, input, select, progress, meter {
+  font-family: inherit;
+  font-size: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  height: 30px;
+}
+
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: var(--dark-bg);
+        color: var(--light-bg);
+    }
+}
+
+@media (prefers-color-scheme:light) {
+    body {
+        background-color: var(--light-bg);
+        color: var(--dark-bg);
+    }
+}
+
 .key {
     width: 30px;
     height: 30px;
@@ -17,4 +57,5 @@
 
 .data {
     height: 30px;
+    display: none;
 }
