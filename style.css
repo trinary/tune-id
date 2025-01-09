@@ -48,9 +48,16 @@ button, label, input, select, progress, meter {
     }
 }
 
+body {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+}
+
 .key {
     width: 30px;
     height: 30px;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 30px;
     user-select: none;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
