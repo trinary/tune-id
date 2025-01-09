@@ -13,6 +13,9 @@
 
     --dark-bg: #363636;
     --light-bg: #c6c6c6;
+
+     --dark-fg: #ffffff;
+     --light-fg: #3c3c3c;
 }
 
 button, label, input, select, progress, meter {
@@ -20,28 +23,34 @@ button, label, input, select, progress, meter {
   font-size: 100%;
   margin: 0;
   box-sizing: border-box;
-  height: 30px;
+  height: 32px;
 }
 
 
 @media (prefers-color-scheme: dark) {
     body {
         background-color: var(--dark-bg);
-        color: var(--light-bg);
+        color: var(--dark-fg);
     }
+    .key {
+        border: 1px var(--dark-fg) solid;
+    }
+
 }
 
 @media (prefers-color-scheme:light) {
     body {
         background-color: var(--light-bg);
-        color: var(--dark-bg);
+        color: var(--light-fg);
+    }
+    .key {
+        border: 1px var(--light-fg) solid;
     }
 }
 
 .key {
     width: 30px;
     height: 30px;
-    border: 1px black solid;
     user-select: none;
     -webkit-touch-callout: none;
     -webkit-user-select: none;

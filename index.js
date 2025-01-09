@@ -3,19 +3,18 @@
     let gainNode = null;
 
     let notes = {
-        'c4': { name: 'c4', freq: 261.63, osc: null, noteStart: 0 },
-        'd4': { name: 'd4', freq: 293.66, osc: null, noteStart: 0 },
-        'e4': { name: 'e4', freq: 329.63, osc: null, noteStart: 0 },
-        'f4': { name: 'f4', freq: 349.23, osc: null, noteStart: 0 },
-        'g4': { name: 'g4', freq: 392, osc: null, noteStart: 0 },
-        'a4': { name: 'a4', freq: 440, osc: null, noteStart: 0 },
-        'b4': { name: 'b4', freq: 493.88, osc: null, noteStart: 0 },
-        'c5': { name: 'c5', freq: 523.25, osc: null, noteStart: 0 },
-        'd5': { name: 'd5', freq: 587.33, osc: null, noteStart: 0 },
-        'e5': { name: 'e5', freq: 659.25, osc: null, noteStart: 0 },
         'f5': { name: 'f5', freq: 698.46, osc: null, noteStart: 0 },
-    };
-
+        'e5': { name: 'e5', freq: 659.25, osc: null, noteStart: 0 },
+        'd5': { name: 'd5', freq: 587.33, osc: null, noteStart: 0 },
+        'c5': { name: 'c5', freq: 523.25, osc: null, noteStart: 0 },
+        'b4': { name: 'b4', freq: 493.88, osc: null, noteStart: 0 },
+        'a4': { name: 'a4', freq: 440, osc: null, noteStart: 0 },
+        'g4': { name: 'g4', freq: 392, osc: null, noteStart: 0 },
+        'f4': { name: 'f4', freq: 349.23, osc: null, noteStart: 0 },
+        'e4': { name: 'e4', freq: 329.63, osc: null, noteStart: 0 },
+        'd4': { name: 'd4', freq: 293.66, osc: null, noteStart: 0 },
+        'c4': { name: 'c4', freq: 261.63, osc: null, noteStart: 0 },
+    }
     let keymap = {
         'a': 'c4',
         's': 'd4',
@@ -47,12 +46,12 @@
 
     let song = {
         notes: paramNotes,
-        osc: 'sine',
         songStart: Date.now(),
         recording: false,
     }
 
     let app = document.getElementById('app');
+    let keys = document.getElementById('keys')
     let dataElement = document.getElementById('songdata');
     dataElement.textContent = encodeSong(song.notes);
 
@@ -62,7 +61,7 @@
     let clearButton = document.getElementById("clear");
     clearButton.addEventListener("click", clearHandler, false);
 
-    let volumeInput = document.getElementById("volume"); 
+    let volumeInput = document.getElementById("volume");
     volumeInput.addEventListener("change", volumeHandler, false);
 
     let waveInput = document.getElementById("wavetype");
@@ -78,15 +77,16 @@
     document.body.addEventListener('keyup', keyUpEventHandler, false);
 
     function notePressed(event) {
+        console.log("pressed", event);
         if (audioCtx == null) { createContext(); }
         if (event.buttons & 1 || event.touches) {
             if (song.notes.length == 0 && !song.recording) {
                 song.songStart = Date.now();
                 song.recording = true;
             }
-            let id = event.target.id;
+            let id = event.currentTarget.id;
             notes[id].noteStart = Date.now();
-            event.target.classList.add("pressed");
+            event.currentTarget.classList.add("pressed");
             let osc = playNote(notes[id].freq);
             notes[id].osc = osc;
         }
@@ -94,8 +94,8 @@
 
     function noteReleased(event) {
         console.log("released", event);
-        let id = event.target.id;
-        event.target.classList.remove("pressed");
+        let id = event.currentTarget.id;
+        event.currentTarget.classList.remove("pressed");
         let osc = notes[id].osc;
         if (osc !== null) {
             osc.stop();
@@ -147,9 +147,10 @@
         console.log("key pressed", event);
 
         if (audioCtx == null) { createContext(); }
+        if (event.ctrlKey) { return false; }
 
         let id = keymap[event.key];
-        if (id == null) { return;}
+        if (id == null) { return; }
         if (song.notes.length == 0 && !song.recording) {
             song.songStart = Date.now();
             song.recording = true;
@@ -167,14 +168,14 @@
         // TODO same
         console.log("key released", event);
         let id = keymap[event.key];
-        if (id == null) { return;}
+        if (id == null) { return; }
         let noteElement = document.getElementById(id);
         noteElement.classList.remove("pressed");
         let osc = notes[id].osc;
         if (osc !== null) {
             osc.stop();
             notes[id].osc = null;
-            song.notes.push({ name: id, start: notes[id].noteStart - song.songStart, length: Date.now() - notes[id].noteStart });   
+            song.notes.push({ name: id, start: notes[id].noteStart - song.songStart, length: Date.now() - notes[id].noteStart });
         }
         updateState();
 
@@ -216,7 +217,7 @@
 
     function volumeHandler(event) {
         console.log("volume", event);
-        gainNode.gain.value = event.target.value;
+        gainNode.gain.value = event.currentTarget.value;
     }
 
     function wavetypeHandler(event) {
@@ -228,18 +229,19 @@
         const keyElement = document.createElement('div');
         keyElement.className = 'key';
         keyElement.id = note.name;
-        const labelElement = document.createElement('label');
+        const labelElement = document.createElement('div');
+        labelElement.className = 'label';
         labelElement.textContent = note.name;
-        //keyElement.append(labelElement);
+        keyElement.append(labelElement);
 
-        keyElement.addEventListener("mousedown", notePressed, false);
-        keyElement.addEventListener("touchstart", notePressed, false);
-        keyElement.addEventListener("mouseenter", notePressed, false);
+        keyElement.addEventListener("mousedown", notePressed);
+        keyElement.addEventListener("touchstart", notePressed);
+        keyElement.addEventListener("mouseenter", notePressed);
 
 
-        keyElement.addEventListener("mouseup", noteReleased, false);
-        keyElement.addEventListener("mouseleave", noteReleased, false);
-        keyElement.addEventListener("touchend", noteReleased, false);
+        keyElement.addEventListener("mouseup", noteReleased);
+        keyElement.addEventListener("mouseleave", noteReleased);
+        keyElement.addEventListener("touchend", noteReleased);
 
         return keyElement;
     }
