@@ -4,6 +4,12 @@
     gainNode.connect(audioCtx.destination);
     gainNode.gain.value = 1.0;
 
+    enum RecordingStatus {
+        Recording,
+        Countdown,
+        Idle,
+    }
+
     class NoteDefinition {
         name!: string;
         freq!: number;
@@ -36,7 +42,7 @@
     class Song {
         bpm: number;
         tracks: Track[] = [];
-        recording: boolean = false;
+        recording: RecordingStatus = RecordingStatus.Idle;
         recordingStart?: number; 
 
         constructor(bpm: number, trackParams: string) {
@@ -115,8 +121,6 @@
 
     //if (params.has('n')) { paramNotes = decodeSong(params.get('n')); }
 
-    let song = new Song(140, noteParam); //TODO
-
     let app = document.getElementById('app');
     let keys = document.getElementById('keys');
 
@@ -135,10 +139,16 @@
     let recordInput = document.getElementById("record");
     recordInput?.addEventListener("click", recordHandler, false);
 
+    let bpmInput = document.getElementById("bpm") as HTMLInputElement;
+    bpmInput?.addEventListener("change", bpmHandler);
+    let bpm = bpmInput?.value ?? 140;
+
     noteDefinitions.forEach((value, key) => {
         let keyElement = createKey(value);
         app?.appendChild(keyElement);
     });
+
+    let song = new Song(140, noteParam); //TODO
 
     document.body.addEventListener('keydown', keyDownEventHandler, false);
     document.body.addEventListener('keyup', keyUpEventHandler, false);
@@ -147,10 +157,6 @@
         createContext();
 
         if (event.buttons != 0 || event.touches) {
-            if (song.tracks.length == 0 && !song.recording) {
-                song.recordingStart = Date.now();
-                song.recording = true;
-            }
             let id = event.currentTarget.id;
             let noteDef = noteDefinitions.get(id);
             let note = new NoteInstance(id, (Date.now() - song.recordingStart!));
@@ -171,14 +177,16 @@
             let note = activeNotes.get(id)!;
             
             note?.osc?.stop();
-            note.duration = Date.now() - note.start;
+            note.duration = Date.now() - (song.recordingStart! + note.start);
             // TODO: create note instance in notePressed, and update its duration here?
             if (song.tracks.length == 0){
                 song.tracks = [new Track()]
             }
-            song.tracks[0].notes.push(note);
-        
-            updateState();
+            
+            if (song.recording == RecordingStatus.Recording) {
+                song.tracks[0].notes.push(note);
+                updateState();
+            }
             activeNotes.delete(id);
         }
         
@@ -218,10 +226,6 @@
 
         let id = keymap[event.key];
         if (id == null) { return; }
-        if (song.tracks.length == 0 && !song.recording) {
-            song.recordingStart = Date.now();
-            song.recording = true;
-        }
 
         noteDefinitions[id].noteStart = Date.now();
 
@@ -245,7 +249,7 @@
              {
                  name: id, 
                  start: noteDefinitions[id].noteStart,
-                 duration: Date.now() - noteDefinitions[id].noteStart 
+                 duration: Date.now() - noteDefinitions[id].noteStart, 
              }
            );
         }
@@ -256,21 +260,25 @@
         createContext();
         for (const note of song.tracks[0].notes) {
             let timeout = setTimeout(() => {
-                let osc = audioCtx.createOscillator();
+                let osc = audioCtx!.createOscillator();
+                let noteName = note.name;
+                console.log("playing ", note);
+                console.log("can I actually play this?!?!?!? ", noteDefinitions.get(noteName));
                 let noteElement = document.getElementById(note.name);
-                if (noteElement != null) {
-                    noteElement!.classList.add('pressed');
-                    osc.connect(gainNode);
-                    osc.type = waveInput.value as OscillatorType;
-                    osc.frequency.value = noteDefinitions[note.name].freq;
-                    osc.start();
-    
-                    let stopTimeout = setTimeout(() => {
-                        noteElement!.classList.remove('pressed');
-                        osc.stop();
-                    }, note.duration);
-                    playTimeouts.push(stopTimeout);    
-                }
+                if (noteElement != null) { noteElement!.classList.add('pressed'); }
+                osc.connect(gainNode);
+                osc.type = waveInput.value as OscillatorType;
+                osc.frequency.value = noteDefinitions.get(noteName)!.freq;
+                osc.start();
+                osc.stop(audioCtx.currentTime + (note.duration/1_000));
+
+                let stopTimeout = setTimeout(() => {
+                    noteElement!.classList.remove('pressed');
+//                        osc.stop();
+// TODO can we get rid of this stuff entirely? Need to remove the pressed class when the note is done but the osc can control
+// note length all on its own.
+                }, note.duration);
+                playTimeouts.push(stopTimeout);    
             }, note.start);
             playTimeouts.push(timeout);
         }
@@ -278,7 +286,7 @@
 
     function clearHandler(event: Event) {
         song.tracks = [];
-        song.recording = false;
+        song.recording = RecordingStatus.Idle;
         for (const timeout of playTimeouts) {
             clearTimeout(timeout);
         }
@@ -295,8 +303,48 @@
     }
 
     function recordHandler(event) {
-        song.recording = !song.recording;
-        
+        if (song.recording == RecordingStatus.Recording) {
+            song.recording = RecordingStatus.Idle;
+            recordInput?.classList.remove("recording");
+        } else if (song.recording == RecordingStatus.Countdown) {
+            song.recording = RecordingStatus.Idle;
+            recordInput?.classList.remove("countdown");
+            // TODO this gonna break the metronome clicks
+        } else {
+            let playClick = (go) => {
+                console.log("clickin");
+                let osc = audioCtx.createOscillator();
+                osc.connect(gainNode);
+                osc.type = 'square';
+                osc.frequency.value = 880;
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.05); // 100ms click;
+                if (go) {
+                    // actually start recording
+                    recordInput?.classList.remove("countdown");
+                    recordInput?.classList.add("recording");
+                    song.recording = RecordingStatus.Recording;
+                    song.recordingStart = Date.now();
+                }
+            }
+
+            recordInput?.classList.add("countdown");
+            // 4-click countdown at correct bpm
+            // trigger recording state change at 0
+            // set startrecording time
+            // 140 beats/minute -> 1/140 minutes/beat -> 60/140 seconds/beat
+            let osc = audioCtx.createOscillator()
+            let interval = Number(60_000 * (1/song.bpm)); // milliseconds
+            console.log("click countdown interval ", interval);
+            setTimeout(playClick, 0*interval, false);
+            setTimeout(playClick, 1*interval, false);
+            setTimeout(playClick, 2*interval, false);
+            setTimeout(playClick, 3*interval, true);
+        }
+    }
+
+    function bpmHandler(event) {
+        bpm = event.currentTarget.value;
     }
 
     function visualize() {
