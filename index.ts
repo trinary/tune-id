@@ -51,6 +51,10 @@ import { keymap } from "./keymap";
         constructor(bpm: number, trackParams: string) {
             this.bpm = bpm;
             this.tracks = this.decodeParams(trackParams);
+            if (this.tracks.length == 0) {
+                this.tracks.push(new Track("aayyy"));
+            }
+            this.trackIndex = 0;
         }
 
         decodeParams(input: string): Track[] {
@@ -102,8 +106,10 @@ import { keymap } from "./keymap";
 
     let bpmInput = document.getElementById("bpm") as HTMLInputElement;
     bpmInput?.addEventListener("change", bpmHandler);
-    let bpm = bpmInput?.value ?? 140;
 
+    document.body.addEventListener('keydown', notePressed, false);
+    document.body.addEventListener('keyup', noteReleased, false);
+    
     noteDefinitions.forEach((value, key) => {
         let keyElement = createKey(value);
         app?.appendChild(keyElement);
@@ -111,8 +117,6 @@ import { keymap } from "./keymap";
 
     let song = new Song(140, noteParam); //TODO
 
-    document.body.addEventListener('keydown', notePressed, false);
-    document.body.addEventListener('keyup', noteReleased, false);
     function notePressed(event) {
         createContext();
         console.log("pressed event", event);
@@ -127,10 +131,12 @@ import { keymap } from "./keymap";
 
         let noteElement = document.getElementById(id);
         if (noteElement) {noteElement.classList.add("pressed");}
-        let osc = playNote(noteDef!.freq);
-        note.osc = osc;
-        activeNotes.set(id, note);
 
+        if (noteDef && !event.repeat) {
+            let osc = playNote(noteDef!.freq);
+            note.osc = osc;
+            activeNotes.set(id, note);
+        }
     }
 
     function noteReleased(event) {
@@ -150,7 +156,6 @@ import { keymap } from "./keymap";
 
             note?.osc?.stop();
             note.duration = Date.now() - (song.recordingStart! + note.start);
-            // TODO: create note instance in notePressed, and update its duration here?
 
             if (song.recording == RecordingStatus.Recording) {
                 song.tracks[0].notes.push(note);
@@ -225,7 +230,6 @@ import { keymap } from "./keymap";
         for (const timeout of playTimeouts) {
             clearTimeout(timeout);
         }
-        // TODO clear currently playing notes in here too
         activeNotes.clear();
         updateState();
     }
@@ -279,7 +283,7 @@ import { keymap } from "./keymap";
     }
 
     function bpmHandler(event) {
-        bpm = event.currentTarget.value;
+        song.bpm = event.currentTarget.value;
     }
 
     function createKey(note) {
@@ -288,10 +292,6 @@ import { keymap } from "./keymap";
         const keyElement = document.createElement('div');
         keyElement.classList.add('key');
         keyElement.id = note.name;
-        //const labelElement = document.createElement('div');
-        // labelElement.classList.add('label');
-        // labelElement.textContent = note.name;
-        // keyElement.append(labelElement);
 
         keyElement.addEventListener("mousedown", notePressed);
         keyElement.addEventListener("touchstart", notePressed);
