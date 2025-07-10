@@ -18,7 +18,6 @@ import { keymap } from "./keymap";
         Drum
     }
 
-
     class NoteInstance {
         name!: string;
         osc?: OscillatorNode;
@@ -281,15 +280,6 @@ import { keymap } from "./keymap";
 
     function bpmHandler(event) {
         bpm = event.currentTarget.value;
-    }
-
-    function createTrack() {
-        const containerElement = document.getElementById('tracks')!;
-
-    }
-
-    function visualize() {
-
     }
 
     function createKey(note) {
