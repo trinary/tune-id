@@ -70,7 +70,6 @@ import { WaveForm } from "./waveform"
                 return note;
             });
             let track: Track = new Track("llllol");
-            console.log("DECODED NOTES", notes);
             track.notes = notes;
             return [track];
         }
@@ -131,7 +130,6 @@ import { WaveForm } from "./waveform"
 
     function notePressed(event) {
         createContext();
-        console.log("pressed event", event);
         let id:string = "";
         if (event.type == "keydown") { id = keymap[event.key]; }
         else if (event.buttons != 0 || event.touches) {
@@ -152,16 +150,12 @@ import { WaveForm } from "./waveform"
     }
 
     function noteReleased(event) {
-        console.log("released event", event);
-
         event.currentTarget.classList.remove("pressed");
         let id = "";
         if (event.type == "keyup") { id = keymap[event.key]; }
         else if (event.currentTarget && event.currentTarget.id) {
             id = event.currentTarget.id;
         }
-
-        console.log("released id: ", id);
 
         if (id && activeNotes.has(id)) {
             let note = activeNotes.get(id)!;
@@ -172,7 +166,6 @@ import { WaveForm } from "./waveform"
             note.duration = Date.now() - (song.recordingStart! + note.start);
 
             if (song.recording == RecordingStatus.Recording) {
-                console.log("PUSHED ", note);
                 song.tracks[song.trackIndex].notes.push(note);
                 updateState();
             }
@@ -207,8 +200,6 @@ import { WaveForm } from "./waveform"
                 let timeout = setTimeout(() => {
                     let osc = audioCtx!.createOscillator();
                     let noteName = note.name;
-                    console.log("playing ", note);
-                    console.log("can I actually play this?!?!?!? ", noteDefinitions.get(noteName));
                     let noteElement = document.getElementById(note.name);
                     if (noteElement != null) { noteElement!.classList.add('pressed'); }
                     osc.connect(gainNode);
@@ -259,7 +250,6 @@ import { WaveForm } from "./waveform"
             // TODO this gonna break the metronome clicks
         } else {
             let playClick = (go) => {
-                console.log("clickin");
                 let osc = audioCtx.createOscillator();
                 osc.connect(gainNode);
                 osc.type = 'square';
@@ -282,7 +272,6 @@ import { WaveForm } from "./waveform"
             // 140 beats/minute -> 1/140 minutes/beat -> 60/140 seconds/beat
             let osc = audioCtx.createOscillator()
             let interval = Number(60_000 * (1 / song.bpm)); // milliseconds
-            console.log("click countdown interval ", interval);
             setTimeout(playClick, 0 * interval, false);
             setTimeout(playClick, 1 * interval, false);
             setTimeout(playClick, 2 * interval, false);
