@@ -29,11 +29,12 @@ The entire change history of a song lives in your browser history. The page will
 
 ### Stretch goals
 * Snap to beat option for synths
+* Tempo-relative length definition so bpm can be changed after the fact
 * Edit track UI to adjust notes after recording. This might make the main feature list. Depends a lot on visuals and other UI stuff
 * Tremolo, vibrato, LFO-type effects, noise, delay, a zillion different ways to make synths more interesting
-* Lean more into being on web. Embedding? Plugins? Simultaneous multi-user sessions? Copy-pasteable individual tracks or instruments?
+* Lean more into being on web. Embedding? Plugins? Simultaneous multi-user sessions? Copy-pasteable individual tracks or instruments? Load a wavetable for periodic wave from another site?
 * Weird stuff: be able to grab samples from somewhere to use as instrument source
 * Weirder stuff: instrument definition via a json format or something like that. Send note events to another site to do different things to render audio. Stream things to other places. 
 * MIDI in/out
-* Export to file
+* Export to file either as mixed audio or some kind of bundle
 * Version the serialization so changes to audio code can occur without breaking old songs

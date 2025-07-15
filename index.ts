@@ -1,5 +1,6 @@
 import { noteDefinitions } from "./note_definition";
 import { keymap } from "./keymap";
+import { WaveForm } from "./waveform"
 
 (function () {
     let audioCtx: AudioContext = new AudioContext();
@@ -46,19 +47,19 @@ import { keymap } from "./keymap";
         tracks: Track[] = [new Track("lol")];
         recording: RecordingStatus = RecordingStatus.Idle;
         recordingStart?: number;
-        trackIndex: Number;
+        trackIndex: number = 0;
 
         constructor(bpm: number, trackParams: string) {
             this.bpm = bpm;
-            this.tracks = this.decodeParams(trackParams);
+            this.tracks = this.decode(trackParams);
             if (this.tracks.length == 0) {
                 this.tracks.push(new Track("aayyy"));
             }
             this.trackIndex = 0;
         }
 
-        decodeParams(input: string): Track[] {
-            let noteArray = input.split('!');
+        decode(input: string): Track[] {
+            let noteArray = input.split('!').filter(s => s);
             let notes: NoteInstance[] = noteArray.map((n) => {
                 let elems = n.split('|');
                 let name: string = elems[0];
@@ -69,15 +70,23 @@ import { keymap } from "./keymap";
                 return note;
             });
             let track: Track = new Track("llllol");
+            console.log("DECODED NOTES", notes);
             track.notes = notes;
             return [track];
+        }
+
+        encode(): string {
+            let trackNotes: string[] = [];
+            for (const track of this.tracks) {
+                let encodedNotes = track.notes.map((n) => n.name + '|' + n.start + '|' + n.duration).join('!');
+                trackNotes.push(encodedNotes);
+            }
+            return trackNotes.join('_')
         }
     }
 
 
     let activeNotes = new Map<string, NoteInstance>();
-
- 
 
     let params = new URLSearchParams(window.location.search);
 
@@ -112,7 +121,10 @@ import { keymap } from "./keymap";
     
     noteDefinitions.forEach((value, key) => {
         let keyElement = createKey(value);
-        app?.appendChild(keyElement);
+        // TODO: change event handling so we only register one for the whole keyboard
+        // Will need to take out handler registration from createKey
+        // https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting/Event_bubbling
+        keys?.appendChild(keyElement);
     });
 
     let song = new Song(140, noteParam); //TODO
@@ -149,6 +161,8 @@ import { keymap } from "./keymap";
             id = event.currentTarget.id;
         }
 
+        console.log("released id: ", id);
+
         if (id && activeNotes.has(id)) {
             let note = activeNotes.get(id)!;
             let noteElement = document.getElementById(id);
@@ -158,7 +172,8 @@ import { keymap } from "./keymap";
             note.duration = Date.now() - (song.recordingStart! + note.start);
 
             if (song.recording == RecordingStatus.Recording) {
-                song.tracks[0].notes.push(note);
+                console.log("PUSHED ", note);
+                song.tracks[song.trackIndex].notes.push(note);
                 updateState();
             }
             activeNotes.delete(id);
@@ -175,17 +190,9 @@ import { keymap } from "./keymap";
         return osc;
     }
 
-    function encodeSong(input: NoteInstance[]) {
-        console.log("encoding notes: ", input);
-        let encoded = input.map((n) => {
-            return n.name + '|' + n.start + '|' + n.duration
-        });
-        return encoded.join('!')
-    }
-
     function updateState() {
         if (song.tracks.length > 0) {
-            params.set('n', encodeSong(song.tracks[0].notes));
+            params.set('n', song.encode());
         } else {
             params.delete('n');
         }
@@ -225,7 +232,8 @@ import { keymap } from "./keymap";
     }
 
     function clearHandler(event: Event) {
-        song.tracks = [];
+        song.tracks = [new Track("aaaa")];
+        song.trackIndex = 0;
         song.recording = RecordingStatus.Idle;
         for (const timeout of playTimeouts) {
             clearTimeout(timeout);
@@ -293,6 +301,7 @@ import { keymap } from "./keymap";
         keyElement.classList.add('key');
         keyElement.id = note.name;
 
+        // TODO: Don't do this on each key, do it on a container div and delegate
         keyElement.addEventListener("mousedown", notePressed);
         keyElement.addEventListener("touchstart", notePressed);
         keyElement.addEventListener("mouseenter", notePressed);
