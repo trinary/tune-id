@@ -1,14 +1,27 @@
-    export class NoteDefinition {
-        name!: string;
-        freq!: number;
-        type!: string;
 
-        constructor(name: string, freq: number, type: string) {
-            this.name = name;
-            this.freq = freq;
-            this.type = type;
-        }
+export class NoteDefinition {
+    name!: string;
+    freq!: number;
+    type!: string;
+
+    constructor(name: string, freq: number, type: string) {
+        this.name = name;
+        this.freq = freq;
+        this.type = type;
     }
+}
+
+export class NoteInstance {
+    name!: string;
+    osc?: OscillatorNode;
+    start: number;
+    duration: number = 0;
+
+    constructor(name: string, start: number) {
+        this.name = name;
+        this.start = start;
+    }
+}
 
 export let noteDefinitions = new Map<string, NoteDefinition>();
 noteDefinitions.set('f5', new NoteDefinition('f5', 698.46, 'w'));
