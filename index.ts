@@ -3,7 +3,6 @@ import { keymap } from "./keymap";
 import { Song } from "./song";
 import { Track, TrackType } from "./track";
 import { RecordingStatus } from "./control";
-import type { ChangeEvent } from "react";
 
 (function () {
     let audioCtx: AudioContext = new AudioContext();
@@ -31,7 +30,7 @@ import type { ChangeEvent } from "react";
     let volumeInput = document.getElementById("volume") as HTMLInputElement;
     volumeInput?.addEventListener("input", volumeHandler, false);
 
-    let waveInput = document.getElementById("wavetype") as HTMLInputElement;
+    let waveInput = document.getElementById("track-waveform") as HTMLInputElement;
     waveInput?.addEventListener("change", wavetypeHandler, false);
 
     let recordInput = document.getElementById("record");
@@ -70,13 +69,17 @@ import type { ChangeEvent } from "react";
             id = (<HTMLElement>event.target!).id;
         }
 
+        console.log("pressed ", id, event);
         let noteDef = noteDefinitions.get(id);
         let note = new NoteInstance(id, (Date.now() - song.recordingStart!));
 
         let noteElement = document.getElementById(id);
         if (noteElement) { noteElement.classList.add("pressed"); }
 
-        if (noteDef && (((isKeyboardEvent(event) && !event.repeat)) || isMouseEvent(event) || isTouchEvent(event))) {
+        if (noteDef && 
+                (((isKeyboardEvent(event) && !event.repeat)) || 
+                  (isMouseEvent(event) && event.buttons == 1) || 
+                  (isTouchEvent(event) && event.touches))) {
             let osc = playNote(noteDef!.freq);
             note.osc = osc;
             activeNotes.set(id, note);
@@ -84,6 +87,7 @@ import type { ChangeEvent } from "react";
     }
 
     function noteReleased(event: MouseEvent | KeyboardEvent | TouchEvent) {
+        console.log("released ", event);
         (<HTMLElement>event.currentTarget!).classList.remove("pressed");
         let id = "";
         if (isKeyboardEvent(event)) { id = keymap.get(event.key)!; }
@@ -139,7 +143,7 @@ import type { ChangeEvent } from "react";
                     let noteElement = document.getElementById(note.name);
                     if (noteElement != null) { noteElement!.classList.add('pressed'); }
                     osc.connect(gainNode);
-                    osc.type = waveInput.value as OscillatorType;
+                    osc.type = waveInput!.value as OscillatorType;
                     osc.frequency.value = noteDefinitions.get(noteName)!.freq;
                     osc.start();
                     osc.stop(audioCtx.currentTime + (note.duration / 1_000));
