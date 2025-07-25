@@ -1,8 +1,9 @@
-import { noteDefinitions, NoteInstance } from "./note";
+import { NoteDefinition, noteDefinitions, NoteInstance } from "./note";
 import { keymap } from "./keymap";
 import { Song } from "./song";
-import { Track } from "./track";
+import { Track, TrackType } from "./track";
 import { RecordingStatus } from "./control";
+import type { ChangeEvent } from "react";
 
 (function () {
     let audioCtx: AudioContext = new AudioContext();
@@ -19,6 +20,7 @@ import { RecordingStatus } from "./control";
 
     let app = document.getElementById('app');
     let keys = document.getElementById('keys');
+    let tracks = document.getElementById('tracks');
 
     let playButton = document.getElementById("play");
     playButton?.addEventListener("click", playHandler, false);
@@ -38,9 +40,12 @@ import { RecordingStatus } from "./control";
     let bpmInput = document.getElementById("bpm") as HTMLInputElement;
     bpmInput?.addEventListener("change", bpmHandler);
 
+    let newTrackButton = document.getElementById("new-track") as HTMLButtonElement;
+    newTrackButton?.addEventListener("click", addTrackHandler);
+
     document.body.addEventListener('keydown', notePressed, false);
     document.body.addEventListener('keyup', noteReleased, false);
-    
+
     noteDefinitions.forEach((value, key) => {
         let keyElement = createKey(value);
         // TODO: change event handling so we only register one for the whole keyboard
@@ -51,45 +56,53 @@ import { RecordingStatus } from "./control";
 
     let song = new Song(140, noteParam); //TODO
 
-    function notePressed(event) {
+    function notePressed(event: MouseEvent | KeyboardEvent | TouchEvent) {
         createContext();
-        let id:string = "";
-        if (event.type == "keydown") { id = keymap[event.key]; }
-        else if (event.buttons != 0 || event.touches) {
-            id = event.currentTarget.id;
+        let id: string = "";
+
+        // TODO: extract common logic for pressed/released -> id
+        if (isKeyboardEvent(event)) { 
+            id = keymap.get(event.key)!; 
+        }
+        else if (isMouseEvent(event)) {
+            id = (<HTMLElement>event.target!).id; 
+        } else {
+            id = (<HTMLElement>event.target!).id;
         }
 
         let noteDef = noteDefinitions.get(id);
         let note = new NoteInstance(id, (Date.now() - song.recordingStart!));
 
         let noteElement = document.getElementById(id);
-        if (noteElement) {noteElement.classList.add("pressed");}
+        if (noteElement) { noteElement.classList.add("pressed"); }
 
-        if (noteDef && !event.repeat) {
+        if (noteDef && (((isKeyboardEvent(event) && !event.repeat)) || isMouseEvent(event) || isTouchEvent(event))) {
             let osc = playNote(noteDef!.freq);
             note.osc = osc;
             activeNotes.set(id, note);
         }
     }
 
-    function noteReleased(event) {
-        event.currentTarget.classList.remove("pressed");
+    function noteReleased(event: MouseEvent | KeyboardEvent | TouchEvent) {
+        (<HTMLElement>event.currentTarget!).classList.remove("pressed");
         let id = "";
-        if (event.type == "keyup") { id = keymap[event.key]; }
-        else if (event.currentTarget && event.currentTarget.id) {
-            id = event.currentTarget.id;
+        if (isKeyboardEvent(event)) { id = keymap.get(event.key)!; }
+        else if (isMouseEvent(event)) {
+            id = (<HTMLElement>event.target!).id; 
+        } else {
+            id = (<HTMLElement>event.target!).id;
         }
 
         if (id && activeNotes.has(id)) {
             let note = activeNotes.get(id)!;
             let noteElement = document.getElementById(id);
-            if (noteElement) {noteElement.classList.remove("pressed");}
+            if (noteElement) { noteElement.classList.remove("pressed"); }
 
             note?.osc?.stop();
             note.duration = Date.now() - (song.recordingStart! + note.start);
 
             if (song.recording == RecordingStatus.Recording) {
-                song.tracks[song.trackIndex].notes.push(note);
+                song.tracks[song.trackIndex]!.notes.push(note);
                 updateState();
             }
             activeNotes.delete(id);
@@ -116,11 +129,11 @@ import { RecordingStatus } from "./control";
         history.pushState(null, "", newRelativePathQuery);
     }
 
-    function playHandler(event) {
+    function playHandler(event: Event) {
         createContext();
         for (const track of song.tracks) {
             for (const note of track.notes) {
-                let timeout = setTimeout(() => {
+                let timeout = window.setTimeout(() => {
                     let osc = audioCtx!.createOscillator();
                     let noteName = note.name;
                     let noteElement = document.getElementById(note.name);
@@ -131,13 +144,13 @@ import { RecordingStatus } from "./control";
                     osc.start();
                     osc.stop(audioCtx.currentTime + (note.duration / 1_000));
 
-                    let stopTimeout = setTimeout(() => {
+                    let stopTimeout = window.setTimeout(() => {
                         noteElement!.classList.remove('pressed');
                         //                        osc.stop();
                         // TODO can we get rid of this stuff entirely? Need to remove the pressed class when the note is done but the osc can control
                         // note length all on its own.
                     }, note.duration);
-                    playTimeouts.push(stopTimeout);
+                    playTimeouts.push(stopTimeout as number);
                 }, note.start);
                 playTimeouts.push(timeout);
 
@@ -146,7 +159,7 @@ import { RecordingStatus } from "./control";
     }
 
     function clearHandler(event: Event) {
-        song.tracks = [new Track("aaaa")];
+        song.tracks = [new Track("aaaa", TrackType.Synth)];
         song.trackIndex = 0;
         song.recording = RecordingStatus.Idle;
         for (const timeout of playTimeouts) {
@@ -160,10 +173,10 @@ import { RecordingStatus } from "./control";
         gainNode.gain.value = Number((event.currentTarget as HTMLInputElement)?.value);
     }
 
-    function wavetypeHandler(event) {
+    function wavetypeHandler(event: Event) {
     }
 
-    function recordHandler(event) {
+    function recordHandler(event: Event) {
         if (song.recording == RecordingStatus.Recording) {
             song.recording = RecordingStatus.Idle;
             recordInput?.classList.remove("recording");
@@ -172,7 +185,7 @@ import { RecordingStatus } from "./control";
             recordInput?.classList.remove("countdown");
             // TODO this gonna break the metronome clicks
         } else {
-            let playClick = (go) => {
+            let playClick = (go: boolean) => {
                 let osc = audioCtx.createOscillator();
                 osc.connect(gainNode);
                 osc.type = 'square';
@@ -202,11 +215,16 @@ import { RecordingStatus } from "./control";
         }
     }
 
-    function bpmHandler(event) {
-        song.bpm = event.currentTarget.value;
+    function bpmHandler(event: any) {
+        song.bpm = bpmInput.value as unknown as number;
     }
 
-    function createKey(note) {
+    function addTrackHandler(this: HTMLButtonElement, ev: MouseEvent) {
+        song.add_track(tracks!);
+    }
+
+
+    function createKey(note: NoteDefinition) {
         const containerElement = document.createElement('div');
         containerElement.classList.add('key_container');
         const keyElement = document.createElement('div');
@@ -229,4 +247,15 @@ import { RecordingStatus } from "./control";
     function createContext() {
         audioCtx.resume().then(() => console.log("resumed"));
     }
+
+    function isMouseEvent(event: MouseEvent | KeyboardEvent | TouchEvent): event is MouseEvent {
+        return (event as MouseEvent).buttons !== undefined;
+    }
+    function isKeyboardEvent(event: MouseEvent | KeyboardEvent | TouchEvent): event is KeyboardEvent {
+        return (event as KeyboardEvent).key !== undefined;
+    }
+    function isTouchEvent(event: MouseEvent | KeyboardEvent | TouchEvent): event is TouchEvent {
+        return (event as TouchEvent).touches !== undefined;
+    }
 })();
+

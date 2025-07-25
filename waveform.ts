@@ -1,7 +1,7 @@
+
 export class WaveForm {
-    osc: OscillatorType;
-    attack: number;
-    decay: number;
-    sustain: number;
-    release: number;
+    attack: number = 0;
+    decay: number = 0;
+    sustain: number = 0;
+    release: number = 0;
 }

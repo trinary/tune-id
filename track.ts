@@ -7,8 +7,10 @@ import { WaveForm } from "./waveform";
         type: TrackType = TrackType.Synth;
         waveform: WaveForm;
 
-        constructor(name: string) {
+        constructor(name: string, type: TrackType) {
             this.name = name;
+            this.type = type;
+            this.waveform = new WaveForm();
         }
     }
 

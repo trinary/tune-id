@@ -13,24 +13,29 @@
 <body>
     <h1>It goes like...</h1>
     <div id="app">
-        <button type="button" id="newTrack">New Track</button>
-        <br/>
+        <button type="button" id="new-track">Add Melody</button>
+        <br />
         <button type="button" id="record">🔴 Record</button>
         <button type="button" id="play">▶️ Play</button>
         <button type="button" id="clear">❌ Clear Track</button>
-        <select id="wavetype">
-            <option value="sine">Sine</option>
-            <option value="square">Square</option>
-            <option value="sawtooth">Sawtooth</option>
-            <option value="triangle">Triangle</option>
-        </select>
+
         <input type="number" value="140" id="bpm">BPM</input>
-        <br/>
-        <input type="range" id="volume" min="0" max="1" step="0.01" value="0.8"/>
+        <br />
+        <input type="range" id="volume" min="0" max="1" step="0.01" value="0.8" />
         <div id="tracks"></div>
         <div id="keys"></div>
     </div>
 
 </body>
-
+<template id="track-controls">
+    <div class="track-container" id="track_">
+        <label class="track-label"></label>
+        <select class="track-waveform">
+            <option value="sine">Sine</option>
+            <option value="square">Square</option>
+            <option value="sawtooth">Sawtooth</option>
+            <option value="triangle">Triangle</option>
+        </select>
+    </div>
+</template>
 </html>
