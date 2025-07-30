@@ -1,5 +1,5 @@
 import { expect, test} from "bun:test";
-import { Song } from "./song";
+import { Song } from "./src/models/song";
 
 test("decode 1", () =>{
     let song = new Song(140, "");

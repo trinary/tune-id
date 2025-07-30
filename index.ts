@@ -1,8 +1,8 @@
-import { NoteDefinition, noteDefinitions, NoteInstance } from "./note";
-import { keymap } from "./keymap";
-import { Song } from "./song";
-import { Track, TrackType } from "./track";
-import { RecordingStatus } from "./control";
+import { NoteDefinition, noteDefinitions, NoteInstance } from "./src/models/note";
+import { keymap } from "./src/models/keymap";
+import { Song } from "./src/models/song";
+import { Track, TrackType } from "./src/models/track";
+import { RecordingStatus } from "./src/models/control";
 
 (function () {
     let audioCtx: AudioContext = new AudioContext();
