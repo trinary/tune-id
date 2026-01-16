@@ -1,34 +1,38 @@
 import { RecordingStatus } from "./control";
-import { NoteInstance } from "./note";
+import { NoteDefinition, noteDefinitions, NoteInstance } from "./note";
 import { Track, TrackType } from "./track";
 
 
 export class Song {
     bpm: number;
     tracks: Track[] = [];
+    activeTrackIndex = 0;
     recording: RecordingStatus = RecordingStatus.Idle;
     recordingStart?: number;
-    trackIndex: number = 0;
+    container: HTMLElement;
+    playTimeouts: number[] = [];
+    activeNotes = new Map<string, NoteInstance>();
 
-    constructor(bpm: number, trackParams: string) {
+    constructor(bpm: number, trackParams: string, container: HTMLElement) {
         this.bpm = bpm;
         this.tracks = this.decode(trackParams);
-        if (this.tracks.length == 0) {
-            this.tracks.push(new Track("Melody 1", TrackType.Synth));
-        }
 
-        this.tracks.forEach((track, index) => {
-        // TODO: i dont want container here, it makes it suck to test.
-        // container.append(track.template(index)); 
-        });
-
-        this.trackIndex = 0;
+        this.container = container;
+        this.add_track();
     }
 
-    add_track(container: HTMLElement) {
-        let track = new Track("Melody", TrackType.Synth)
+    add_track() {
+        let track = new Track("New Track", TrackType.Synth)
         this.tracks.push(track);
-        this.trackIndex = this.tracks.length - 1; //TODO: this can probably get out of sync/underrun.
+        this.activeTrackIndex = this.tracks.length - 1;
+
+        let template = document.querySelector<HTMLTemplateElement>("#track-controls")!;
+        let clone = document.importNode(template.content, true);
+        clone.querySelector(".track")!.id = `track_${this.tracks.length - 1}`;
+        
+        let trackDiv = this.container.appendChild(clone);
+
+        return;
     }
 
     decode(input: string): Track[] {
@@ -58,5 +62,41 @@ export class Song {
             trackNotes.push(encodedNotes);
         }
         return trackNotes.join('_')
+    }
+
+    play(audioCtx: AudioContext, gainNode: GainNode) {
+        
+        for (const track of this.tracks) {
+            for (const note of track.notes) {
+                let timeout = window.setTimeout(() => {
+                    let osc = audioCtx!.createOscillator();
+                    let noteName = note.name;
+                    let noteElement = document.getElementById(note.name);
+                    if (noteElement != null) { noteElement!.classList.add('pressed'); }
+                    osc.connect(gainNode);
+                    osc.type = track.waveform as unknown as OscillatorType;
+                    osc.frequency.value = noteDefinitions.get(noteName)!.freq;
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + (note.duration / 1_000));
+
+                    let stopTimeout = window.setTimeout(() => {
+                        noteElement!.classList.remove('pressed');
+                        //                        osc.stop();
+                        // TODO can we get rid of this stuff entirely? Need to remove the pressed class when the note is done but the osc can control
+                        // note length all on its own.
+                    }, note.duration);
+                    this.playTimeouts.push(stopTimeout as number);
+                }, note.start);
+                this.playTimeouts.push(timeout);
+            }
+        }
+    }
+
+    clear() {
+        this.tracks = [];
+        this.recording = RecordingStatus.Idle;
+        for (const timeout of this.playTimeouts) {
+            clearTimeout(timeout);
+        }
     }
 }

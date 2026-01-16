@@ -20,12 +20,6 @@
         <button type="button" id="clear">❌ Clear Track</button>
 
         <input type="number" value="140" id="bpm">BPM</input>
-        <select id="track-waveform">
-            <option value="sine">Sine</option>
-            <option value="square">Square</option>
-            <option value="sawtooth">Sawtooth</option>
-            <option value="triangle">Triangle</option>
-        </select>
         <br />
         <input type="range" id="volume" min="0" max="1" step="0.01" value="0.8" />
         <div id="tracks"></div>
@@ -34,7 +28,8 @@
 
 </body>
 <template id="track-controls">
-    <div class="track-container" id="track_">
+    <div class="track" id="track_">
+        <input type="radio" class="track-radio" name="active"/>
         <label class="track-label"></label>
         <select class="track-waveform">
             <option value="sine">Sine</option>

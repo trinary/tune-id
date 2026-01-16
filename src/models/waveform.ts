@@ -4,4 +4,5 @@ export class WaveForm {
     decay: number = 0;
     sustain: number = 0;
     release: number = 0;
+    shape: OscillatorType = "sine";
 }

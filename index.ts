@@ -14,7 +14,6 @@ import { RecordingStatus } from "./src/models/control";
 
     let params = new URLSearchParams(window.location.search);
 
-    let playTimeouts: number[] = [];
     let noteParam: string = params.get('n') ?? "";
 
     let app = document.getElementById('app');
@@ -30,9 +29,6 @@ import { RecordingStatus } from "./src/models/control";
     let volumeInput = document.getElementById("volume") as HTMLInputElement;
     volumeInput?.addEventListener("input", volumeHandler, false);
 
-    let waveInput = document.getElementById("track-waveform") as HTMLInputElement;
-    waveInput?.addEventListener("change", wavetypeHandler, false);
-
     let recordInput = document.getElementById("record");
     recordInput?.addEventListener("click", recordHandler, false);
 
@@ -41,6 +37,9 @@ import { RecordingStatus } from "./src/models/control";
 
     let newTrackButton = document.getElementById("new-track") as HTMLButtonElement;
     newTrackButton?.addEventListener("click", addTrackHandler);
+
+    let trackList = document.getElementById("tracks");
+    trackList?.addEventListener("click", selectTrackHandler);
 
     document.body.addEventListener('keydown', notePressed, false);
     document.body.addEventListener('keyup', noteReleased, false);
@@ -53,7 +52,7 @@ import { RecordingStatus } from "./src/models/control";
         keys?.appendChild(keyElement);
     });
 
-    let song = new Song(140, noteParam); //TODO
+    let song = new Song(140, noteParam, document.querySelector("#tracks")!);
 
     function notePressed(event: MouseEvent | KeyboardEvent | TouchEvent) {
         createContext();
@@ -91,9 +90,7 @@ import { RecordingStatus } from "./src/models/control";
         (<HTMLElement>event.currentTarget!).classList.remove("pressed");
         let id = "";
         if (isKeyboardEvent(event)) { id = keymap.get(event.key)!; }
-        else if (isMouseEvent(event)) {
-            id = (<HTMLElement>event.target!).id; 
-        } else {
+        else {
             id = (<HTMLElement>event.target!).id;
         }
 
@@ -105,8 +102,9 @@ import { RecordingStatus } from "./src/models/control";
             note?.osc?.stop();
             note.duration = Date.now() - (song.recordingStart! + note.start);
 
+            console.log(song.tracks, song.activeTrackIndex);
             if (song.recording == RecordingStatus.Recording) {
-                song.tracks[song.trackIndex]!.notes.push(note);
+                song.tracks[song.activeTrackIndex]!.notes.push(note);
                 updateState();
             }
             activeNotes.delete(id);
@@ -117,7 +115,8 @@ import { RecordingStatus } from "./src/models/control";
     function playNote(freq: number) {
         let osc = audioCtx!.createOscillator();
         osc.connect(gainNode as AudioNode);
-        osc.type = waveInput?.value as OscillatorType;
+        let waveform = song.tracks[song.activeTrackIndex]!.waveform.shape;
+        osc.type = waveform;
         osc.frequency.value = freq;
         osc.start();
         return osc;
@@ -134,50 +133,17 @@ import { RecordingStatus } from "./src/models/control";
     }
 
     function playHandler(event: Event) {
-        createContext();
-        for (const track of song.tracks) {
-            for (const note of track.notes) {
-                let timeout = window.setTimeout(() => {
-                    let osc = audioCtx!.createOscillator();
-                    let noteName = note.name;
-                    let noteElement = document.getElementById(note.name);
-                    if (noteElement != null) { noteElement!.classList.add('pressed'); }
-                    osc.connect(gainNode);
-                    osc.type = waveInput!.value as OscillatorType;
-                    osc.frequency.value = noteDefinitions.get(noteName)!.freq;
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + (note.duration / 1_000));
-
-                    let stopTimeout = window.setTimeout(() => {
-                        noteElement!.classList.remove('pressed');
-                        //                        osc.stop();
-                        // TODO can we get rid of this stuff entirely? Need to remove the pressed class when the note is done but the osc can control
-                        // note length all on its own.
-                    }, note.duration);
-                    playTimeouts.push(stopTimeout as number);
-                }, note.start);
-                playTimeouts.push(timeout);
-
-            }
-        }
+        song.play(audioCtx, gainNode);
     }
 
     function clearHandler(event: Event) {
-        song.tracks = [new Track("aaaa", TrackType.Synth)];
-        song.trackIndex = 0;
-        song.recording = RecordingStatus.Idle;
-        for (const timeout of playTimeouts) {
-            clearTimeout(timeout);
-        }
+        song.clear();
         activeNotes.clear();
         updateState();
     }
 
     function volumeHandler(event: Event) {
         gainNode.gain.value = Number((event.currentTarget as HTMLInputElement)?.value);
-    }
-
-    function wavetypeHandler(event: Event) {
     }
 
     function recordHandler(event: Event) {
@@ -210,7 +176,7 @@ import { RecordingStatus } from "./src/models/control";
             // trigger recording state change at 0
             // set startrecording time
             // 140 beats/minute -> 1/140 minutes/beat -> 60/140 seconds/beat
-            let osc = audioCtx.createOscillator()
+
             let interval = Number(60_000 * (1 / song.bpm)); // milliseconds
             setTimeout(playClick, 0 * interval, false);
             setTimeout(playClick, 1 * interval, false);
@@ -224,9 +190,13 @@ import { RecordingStatus } from "./src/models/control";
     }
 
     function addTrackHandler(this: HTMLButtonElement, ev: MouseEvent) {
-        song.add_track(tracks!);
+        console.log("adding track");
+        song.add_track();
     }
 
+    function selectTrackHandler(this: HTMLElement, ev: PointerEvent) {
+        console.log(ev.target);
+    }
 
     function createKey(note: NoteDefinition) {
         const containerElement = document.createElement('div');
@@ -262,4 +232,5 @@ import { RecordingStatus } from "./src/models/control";
         return (event as TouchEvent).touches !== undefined;
     }
 })();
+
 
