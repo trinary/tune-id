@@ -1,14 +1,14 @@
-import { NoteDefinition, noteDefinitions, NoteInstance } from "./src/models/note";
-import { keymap } from "./src/models/keymap";
-import { Song } from "./src/models/song";
-import { Track, TrackType } from "./src/models/track";
-import { RecordingStatus } from "./src/models/control";
+import { NoteDefinition, noteDefinitions, NoteInstance } from "./src/models/note.js";
+import { keymap } from "./src/models/keymap.js";
+import { Song } from "./src/models/song.js";
+import { Track, TrackType } from "./src/models/track.js";
+import { RecordingStatus } from "./src/models/control.js";
 
 (function () {
-    let audioCtx: AudioContext = new AudioContext();
+    let audioCtx: AudioContext = new window.AudioContext();
     let gainNode: GainNode = audioCtx.createGain();
     gainNode.connect(audioCtx.destination);
-    gainNode.gain.value = 1.0;
+    gainNode.gain.value = 0.8;
 
     let activeNotes = new Map<string, NoteInstance>();
 
@@ -68,7 +68,6 @@ import { RecordingStatus } from "./src/models/control";
             id = (<HTMLElement>event.target!).id;
         }
 
-        console.log("pressed ", id, event);
         let noteDef = noteDefinitions.get(id);
         let note = new NoteInstance(id, (Date.now() - song.recordingStart!));
 
@@ -79,14 +78,15 @@ import { RecordingStatus } from "./src/models/control";
                 (((isKeyboardEvent(event) && !event.repeat)) || 
                   (isMouseEvent(event) && event.buttons == 1) || 
                   (isTouchEvent(event) && event.touches))) {
-            let osc = playNote(noteDef!.freq);
+
+			console.log("playing ", noteDef, " active track : ", song.tracks[song.activeTrackIndex]!, " index ", song.activeTrackIndex);
+            let osc = playNote(noteDef!.freq, song.tracks[song.activeTrackIndex]!);
             note.osc = osc;
             activeNotes.set(id, note);
         }
     }
 
     function noteReleased(event: MouseEvent | KeyboardEvent | TouchEvent) {
-        console.log("released ", event);
         (<HTMLElement>event.currentTarget!).classList.remove("pressed");
         let id = "";
         if (isKeyboardEvent(event)) { id = keymap.get(event.key)!; }
@@ -102,7 +102,6 @@ import { RecordingStatus } from "./src/models/control";
             note?.osc?.stop();
             note.duration = Date.now() - (song.recordingStart! + note.start);
 
-            console.log(song.tracks, song.activeTrackIndex);
             if (song.recording == RecordingStatus.Recording) {
                 song.tracks[song.activeTrackIndex]!.notes.push(note);
                 updateState();
@@ -112,7 +111,7 @@ import { RecordingStatus } from "./src/models/control";
 
     }
 
-    function playNote(freq: number) {
+    function playNote(freq: number, track: Track) {
         let osc = audioCtx!.createOscillator();
         osc.connect(gainNode as AudioNode);
         let waveform = song.tracks[song.activeTrackIndex]!.waveform.shape;
@@ -190,7 +189,6 @@ import { RecordingStatus } from "./src/models/control";
     }
 
     function addTrackHandler(this: HTMLButtonElement, ev: MouseEvent) {
-        console.log("adding track");
         song.add_track();
     }
 
@@ -219,7 +217,7 @@ import { RecordingStatus } from "./src/models/control";
     }
 
     function createContext() {
-        audioCtx.resume().then(() => console.log("resumed"));
+        audioCtx.resume();
     }
 
     function isMouseEvent(event: MouseEvent | KeyboardEvent | TouchEvent): event is MouseEvent {

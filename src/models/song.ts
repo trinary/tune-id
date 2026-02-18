@@ -1,6 +1,6 @@
-import { RecordingStatus } from "./control";
-import { NoteDefinition, noteDefinitions, NoteInstance } from "./note";
-import { Track, TrackType } from "./track";
+import { RecordingStatus } from "./control.js";
+import { NoteDefinition, noteDefinitions, NoteInstance } from "./note.js";
+import { Track, TrackType } from "./track.js";
 
 
 export class Song {
@@ -30,7 +30,7 @@ export class Song {
         let clone = document.importNode(template.content, true);
         clone.querySelector(".track")!.id = `track_${this.tracks.length - 1}`;
         
-        let trackDiv = this.container.appendChild(clone);
+        this.container.appendChild(clone);
 
         return;
     }
