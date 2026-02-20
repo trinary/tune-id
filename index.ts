@@ -193,7 +193,9 @@ import { RecordingStatus } from "./src/models/control.js";
     }
 
     function selectTrackHandler(this: HTMLElement, ev: PointerEvent) {
-        console.log(ev.target);
+        console.log(this, ev);
+		let selected = document.querySelector('input[name="active"]:checked').index();
+		console.log("selected index ", selected);
     }
 
     function createKey(note: NoteDefinition) {

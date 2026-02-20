@@ -1,12 +1,12 @@
 import { RecordingStatus } from "./control.js";
-import { NoteDefinition, noteDefinitions, NoteInstance } from "./note.js";
+import { noteDefinitions, NoteInstance } from "./note.js";
 import { Track, TrackType } from "./track.js";
 
 
 export class Song {
     bpm: number;
     tracks: Track[] = [];
-    activeTrackIndex = 0;
+    selectedTrackIndex = 0;
     recording: RecordingStatus = RecordingStatus.Idle;
     recordingStart?: number;
     container: HTMLElement;
@@ -24,7 +24,7 @@ export class Song {
     add_track() {
         let track = new Track("New Track", TrackType.Synth)
         this.tracks.push(track);
-        this.activeTrackIndex = this.tracks.length - 1;
+        this.selectedTrackIndex = this.tracks.length - 1;
 
         let template = document.querySelector<HTMLTemplateElement>("#track-controls")!;
         let clone = document.importNode(template.content, true);
