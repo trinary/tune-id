@@ -1,7 +1,7 @@
 import { NoteDefinition, noteDefinitions, NoteInstance } from "./src/models/note.js";
 import { keymap } from "./src/models/keymap.js";
 import { Song } from "./src/models/song.js";
-import { Track, TrackType } from "./src/models/track.js";
+import { Track } from "./src/models/track.js";
 import { RecordingStatus } from "./src/models/control.js";
 
 (function () {
@@ -79,8 +79,7 @@ import { RecordingStatus } from "./src/models/control.js";
                   (isMouseEvent(event) && event.buttons == 1) || 
                   (isTouchEvent(event) && event.touches))) {
 
-			console.log("playing ", noteDef, " active track : ", song.tracks[song.activeTrackIndex]!, " index ", song.activeTrackIndex);
-            let osc = playNote(noteDef!.freq, song.tracks[song.activeTrackIndex]!);
+            let osc = playNote(noteDef!.freq, song.tracks[song.selectedTrackIndex]!);
             note.osc = osc;
             activeNotes.set(id, note);
         }
@@ -103,7 +102,7 @@ import { RecordingStatus } from "./src/models/control.js";
             note.duration = Date.now() - (song.recordingStart! + note.start);
 
             if (song.recording == RecordingStatus.Recording) {
-                song.tracks[song.activeTrackIndex]!.notes.push(note);
+                song.tracks[song.selectedTrackIndex]!.notes.push(note);
                 updateState();
             }
             activeNotes.delete(id);
@@ -114,7 +113,7 @@ import { RecordingStatus } from "./src/models/control.js";
     function playNote(freq: number, track: Track) {
         let osc = audioCtx!.createOscillator();
         osc.connect(gainNode as AudioNode);
-        let waveform = song.tracks[song.activeTrackIndex]!.waveform.shape;
+        let waveform = song.tracks[song.selectedTrackIndex]!.waveform.shape;
         osc.type = waveform;
         osc.frequency.value = freq;
         osc.start();
@@ -194,8 +193,7 @@ import { RecordingStatus } from "./src/models/control.js";
 
     function selectTrackHandler(this: HTMLElement, ev: PointerEvent) {
         console.log(this, ev);
-		let selected = document.querySelector('input[name="active"]:checked').index();
-		console.log("selected index ", selected);
+		// let selected = document.querySelector('input[name="active"]:checked').index();
     }
 
     function createKey(note: NoteDefinition) {
