@@ -94,6 +94,10 @@ export class Song {
 
     clear() {
         this.tracks = [];
+        //clone.querySelector(".track")!.id = `track_${this.tracks.length - 1}`;
+		let trackElements = Array.from(this.container.children);
+		trackElements.map((e) => e.remove());
+		this.add_track();
         this.recording = RecordingStatus.Idle;
         for (const timeout of this.playTimeouts) {
             clearTimeout(timeout);
