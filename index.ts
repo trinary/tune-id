@@ -11,15 +11,10 @@ import { RecordingStatus } from "./src/models/control.js";
     gainNode.gain.value = 0.8;
 
     let activeNotes = new Map<string, NoteInstance>();
-
     let params = new URLSearchParams(window.location.search);
 
     let noteParam: string = params.get('n') ?? "";
-
-    let app = document.getElementById('app');
     let keys = document.getElementById('keys');
-    let tracks = document.getElementById('tracks');
-
     let playButton = document.getElementById("play");
     playButton?.addEventListener("click", playHandler, false);
 
@@ -44,7 +39,7 @@ import { RecordingStatus } from "./src/models/control.js";
     document.body.addEventListener('keydown', notePressed, false);
     document.body.addEventListener('keyup', noteReleased, false);
 
-    noteDefinitions.forEach((value, key) => {
+    noteDefinitions.forEach((value, _) => {
         let keyElement = createKey(value);
         // TODO: change event handling so we only register one for the whole keyboard
         // Will need to take out handler registration from createKey
@@ -79,7 +74,7 @@ import { RecordingStatus } from "./src/models/control.js";
                   (isMouseEvent(event) && event.buttons == 1) || 
                   (isTouchEvent(event) && event.touches))) {
 
-            let osc = playNote(noteDef!.freq, song.tracks[song.selectedTrackIndex]!);
+            let osc = playNote(noteDef!.freq);
             note.osc = osc;
             activeNotes.set(id, note);
         }
@@ -110,7 +105,7 @@ import { RecordingStatus } from "./src/models/control.js";
 
     }
 
-    function playNote(freq: number, track: Track) {
+    function playNote(freq: number) {
         let osc = audioCtx!.createOscillator();
         osc.connect(gainNode as AudioNode);
         let waveform = song.tracks[song.selectedTrackIndex]!.waveform.shape;
@@ -130,11 +125,11 @@ import { RecordingStatus } from "./src/models/control.js";
         history.pushState(null, "", newRelativePathQuery);
     }
 
-    function playHandler(event: Event) {
+    function playHandler() {
         song.play(audioCtx, gainNode);
     }
 
-    function clearHandler(event: Event) {
+    function clearHandler() {
         song.clear();
         activeNotes.clear();
         updateState();
@@ -144,7 +139,7 @@ import { RecordingStatus } from "./src/models/control.js";
         gainNode.gain.value = Number((event.currentTarget as HTMLInputElement)?.value);
     }
 
-    function recordHandler(event: Event) {
+    function recordHandler() {
         if (song.recording == RecordingStatus.Recording) {
             song.recording = RecordingStatus.Idle;
             recordInput?.classList.remove("recording");
@@ -183,11 +178,11 @@ import { RecordingStatus } from "./src/models/control.js";
         }
     }
 
-    function bpmHandler(event: any) {
+    function bpmHandler() {
         song.bpm = bpmInput.value as unknown as number;
     }
 
-    function addTrackHandler(this: HTMLButtonElement, ev: MouseEvent) {
+    function addTrackHandler(this: HTMLButtonElement) {
         song.add_track();
     }
 
